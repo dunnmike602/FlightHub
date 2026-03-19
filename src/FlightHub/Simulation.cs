@@ -34,62 +34,83 @@ public sealed class SimulationEngine : ISimulationEngine
     // Very small deterministic Euler integrator using kinematic transforms.
     public void Step(AircraftState state, double dt)
     {
-        // For the strict scope: no aerodynamics. Use body velocities as inputs.
-        // Integrate linear velocities -> position (transform body->inertial using small-angle approximation)
+        // Note: This method performs a kinematic integration only. There is no
+        // dynamics model (forces/moments) applied — body velocities and body
+        // rates are treated as constant inputs over the timestep `dt`.
 
-        // Rotation matrix from body to inertial (N) using Euler angles (phi, theta, psi)
-        double phi = state.Roll;
-        double theta = state.Pitch;
-        double psi = state.Yaw;
+        // Extract current Euler angles from the state for readability
+        // phi (roll), theta (pitch), psi (yaw)
+        double phi = state.Roll;   // roll angle (rad)
+        double theta = state.Pitch; // pitch angle (rad)
+        double psi = state.Yaw;    // yaw angle (rad)
 
-        double cphi = Math.Cos(phi);
-        double sphi = Math.Sin(phi);
-        double ctheta = Math.Cos(theta);
-        double stheta = Math.Sin(theta);
-        double cpsi = Math.Cos(psi);
-        double spsi = Math.Sin(psi);
+        // Precompute sines and cosines used in the rotation matrix and
+        // Euler-rate equations to avoid repeated calls to Math.Sin/Math.Cos.
+        double cphi = Math.Cos(phi); // cos(phi)
+        double sphi = Math.Sin(phi); // sin(phi)
+        double ctheta = Math.Cos(theta); // cos(theta)
+        double stheta = Math.Sin(theta); // sin(theta)
+        double cpsi = Math.Cos(psi); // cos(psi)
+        double spsi = Math.Sin(psi); // sin(psi)
 
-        // Body-to-inertial rotation R = Rz(psi) * Ry(theta) * Rx(phi)
-        double r11 = ctheta * cpsi;
-        double r12 = ctheta * spsi;
-        double r13 = -stheta;
+        // Construct the body-to-inertial rotation matrix R = Rz(psi) * Ry(theta) * Rx(phi)
+        // This maps body-frame vectors into the inertial (navigation) frame.
+        // The matrix elements are named r[row][col].
+        double r11 = ctheta * cpsi;            // N_x = ctheta*cpsi
+        double r12 = ctheta * spsi;            // N_y = ctheta*spsi
+        double r13 = -stheta;                  // N_z = -sin(theta)
 
-        double r21 = sphi * stheta * cpsi - cphi * spsi;
-        double r22 = sphi * stheta * spsi + cphi * cpsi;
-        double r23 = sphi * ctheta;
+        double r21 = sphi * stheta * cpsi - cphi * spsi; // second row, first col
+        double r22 = sphi * stheta * spsi + cphi * cpsi; // second row, second col
+        double r23 = sphi * ctheta;                      // second row, third col
 
-        double r31 = cphi * stheta * cpsi + sphi * spsi;
-        double r32 = cphi * stheta * spsi - sphi * cpsi;
-        double r33 = cphi * ctheta;
+        double r31 = cphi * stheta * cpsi + sphi * spsi; // third row, first col
+        double r32 = cphi * stheta * spsi - sphi * cpsi; // third row, second col
+        double r33 = cphi * ctheta;                      // third row, third col
 
-        // Linear velocity in inertial frame
+        // Transform body-frame linear velocity (U,V,W) into inertial-frame
+        // linear velocity components (Vx,Vy,Vz) using the rotation matrix.
         double Vx = r11 * state.U + r12 * state.V + r13 * state.W;
         double Vy = r21 * state.U + r22 * state.V + r23 * state.W;
         double Vz = r31 * state.U + r32 * state.V + r33 * state.W;
 
-        // Integrate position
+        // Integrate position using a simple forward Euler step:
+        // x_{k+1} = x_k + Vx * dt, etc.
         state.X += Vx * dt;
         state.Y += Vy * dt;
         state.Z += Vz * dt;
 
-        // Integrate attitudes using body rates (P,Q,R) -> Euler angle rates approximation
-        // phi_dot = P + Q*sin(phi)*tan(theta) + R*cos(phi)*tan(theta)
-        // theta_dot = Q*cos(phi) - R*sin(phi)
-        // psi_dot = Q*sin(phi)/cos(theta) + R*cos(phi)/cos(theta)
+        // Integrate attitudes (Euler angles) from body angular rates (P,Q,R).
+        // The mapping from body rates to Euler angle rates is nonlinear; for
+        // small angles and standard aerospace 3-2-1 (phi,theta,psi) ordering
+        // the relations are:
+        //   phi_dot   = P + Q*sin(phi)*tan(theta) + R*cos(phi)*tan(theta)
+        //   theta_dot = Q*cos(phi) - R*sin(phi)
+        //   psi_dot   = (Q*sin(phi) + R*cos(phi)) / cos(theta)
+        // We compute these terms below. Note cos(theta) appears in denominators
+        // so guard against singularities at theta ~= +/- 90 degrees.
 
-        double tanTheta = Math.Tan(theta);
-        double cosTheta = Math.Cos(theta);
-        if (Math.Abs(cosTheta) < 1e-6) cosTheta = 1e-6; // avoid div by zero
+        double tanTheta = Math.Tan(theta);      // tan(theta)
+        double cosTheta = Math.Cos(theta);     // cos(theta)
+        // Prevent division by zero when pitch is near +/- 90 degrees by
+        // clamping cosTheta to a small non-zero value. This keeps the
+        // integrator well-behaved for the limited scope of this example.
+        if (Math.Abs(cosTheta) < 1e-6) cosTheta = 1e-6;
 
+        // Compute Euler angle derivatives from body rates stored in state.
         double phi_dot = state.P + state.Q * Math.Sin(phi) * tanTheta + state.R * Math.Cos(phi) * tanTheta;
         double theta_dot = state.Q * Math.Cos(phi) - state.R * Math.Sin(phi);
         double psi_dot = (state.Q * Math.Sin(phi) + state.R * Math.Cos(phi)) / cosTheta;
 
+        // Integrate Euler angles using forward Euler: angle_{k+1} = angle_k + angle_dot * dt
         state.Roll += phi_dot * dt;
         state.Pitch += theta_dot * dt;
         state.Yaw += psi_dot * dt;
 
-        // For this scope, linear and angular velocities are constant (no dynamics model).
+        // Note: Linear and angular velocities (U,V,W,P,Q,R) are not updated
+        // by this integrator — a full dynamics model would compute their
+        // time derivatives from forces/moments. This method intentionally
+        // leaves them constant over the timestep for simplicity.
     }
 
     public string FormatState(double time, AircraftState state)
