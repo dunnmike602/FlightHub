@@ -1,36 +1,76 @@
 namespace FlightHub;
 
+public interface ISimulationEngine
+{
+    string FormatState(double time, AircraftState state);
+
+    void Step(AircraftState state, double dt);
+}
+
 public sealed class AircraftState
 {
-    // Linear velocity (body frame)
-    public double U { get; set; }
-    public double V { get; set; }
-    public double W { get; set; }
-
     // Angular rates (body frame)
     public double P { get; set; }
+
+    public double Pitch { get; set; }
+
     public double Q { get; set; }
+
     public double R { get; set; }
 
     // Attitude (Euler angles)
-    public double Roll { get; set; }   // phi (rad)
-    public double Pitch { get; set; }  // theta (rad)
-    public double Yaw { get; set; }    // psi (rad)
+    public double Roll { get; set; }
+
+    // Linear velocity (body frame)
+    public double U { get; set; }
+
+    public double V { get; set; }
+    public double W { get; set; }
 
     // Position (inertial frame)
-    public double X { get; set; } // m
-    public double Y { get; set; } // m
-    public double Z { get; set; } // m
-}
+    public double X { get; set; }
 
-public interface ISimulationEngine
-{
-    void Step(AircraftState state, double dt);
-    string FormatState(double time, AircraftState state);
+    // m
+    public double Y { get; set; }
+
+    // Mass of the aircraft (kg). Used when computing forces/accelerations.
+    // Default value chosen so examples have reasonable scale; can be set by caller.
+    public double Mass { get; set; } = 1000.0;
+
+    // phi (rad)
+    // theta (rad)
+    public double Yaw { get; set; }    // psi (rad)
+
+    // m
+    public double Z { get; set; } // m
 }
 
 public sealed class SimulationEngine : ISimulationEngine
 {
+    // When true, gravity is applied to the aircraft as a body-frame
+    // acceleration based on current attitude and Mass. Default is false
+    // to preserve previous kinematic-only behavior.
+    public bool ApplyGravity { get; set; } = false;
+
+    public string FormatState(double time, AircraftState state)
+    {
+        return string.Join(",", new object[] {
+            time.ToString("F3"),
+            state.U.ToString("F6"),
+            state.V.ToString("F6"),
+            state.W.ToString("F6"),
+            state.P.ToString("F6"),
+            state.Q.ToString("F6"),
+            state.R.ToString("F6"),
+            state.Roll.ToString("F6"),
+            state.Pitch.ToString("F6"),
+            state.Yaw.ToString("F6"),
+            state.X.ToString("F6"),
+            state.Y.ToString("F6"),
+            state.Z.ToString("F6")
+        });
+    }
+
     // Very small deterministic Euler integrator using kinematic transforms.
     public void Step(AircraftState state, double dt)
     {
@@ -74,6 +114,45 @@ public sealed class SimulationEngine : ISimulationEngine
         double Vy = r21 * state.U + r22 * state.V + r23 * state.W;
         double Vz = r31 * state.U + r32 * state.V + r33 * state.W;
 
+        // Apply gravity force as an acceleration. Gravity acts in the
+        // inertial frame along the negative Z axis (down). We convert the
+        // gravity vector into the body frame (using R^T) to compute the
+        // equivalent body-frame accelerations and then integrate them into
+        // the body velocities (U,V,W). This is a very small and simple
+        // model: no aerodynamic forces, only gravity influences linear
+        // accelerations. For realistic dynamics, forces and moments from
+        // aerodynamics and propulsion would be included.
+        const double g = 9.80665; // m/s^2 (standard gravity)
+
+        // If Mass is positive, compute acceleration due to gravity in body frame.
+        if (ApplyGravity && state.Mass > 0)
+        {
+            // Gravity in inertial frame: (0, 0, -g). To get body-frame
+            // components, multiply by R^T (which is the inverse of R for
+            // rotation matrices). R^T element [i,j] = rji.
+            double g_body_x = r11 * 0 + r21 * 0 + r31 * (-g); // = r31 * -g
+            double g_body_y = r12 * 0 + r22 * 0 + r32 * (-g); // = r32 * -g
+            double g_body_z = r13 * 0 + r23 * 0 + r33 * (-g); // = r33 * -g
+
+            // Convert to accelerations (F = m*a => a = F/m). Here the
+            // 'force' is simply mass*gravity in inertial frame projected to
+            // body frame, so dividing by mass recovers the acceleration.
+            double ax = g_body_x; // already acceleration (m/s^2) since we used g
+            double ay = g_body_y;
+            double az = g_body_z;
+
+            // Integrate body-frame linear velocities using those accelerations.
+            // v_{k+1} = v_k + a * dt
+            state.U += ax * dt;
+            state.V += ay * dt;
+            state.W += az * dt;
+
+            // Recompute inertial velocities after updating body velocities
+            Vx = r11 * state.U + r12 * state.V + r13 * state.W;
+            Vy = r21 * state.U + r22 * state.V + r23 * state.W;
+            Vz = r31 * state.U + r32 * state.V + r33 * state.W;
+        }
+
         // Integrate position using a simple forward Euler step:
         // x_{k+1} = x_k + Vx * dt, etc.
         state.X += Vx * dt;
@@ -111,24 +190,5 @@ public sealed class SimulationEngine : ISimulationEngine
         // by this integrator — a full dynamics model would compute their
         // time derivatives from forces/moments. This method intentionally
         // leaves them constant over the timestep for simplicity.
-    }
-
-    public string FormatState(double time, AircraftState state)
-    {
-        return string.Join(",", new object[] {
-            time.ToString("F3"),
-            state.U.ToString("F6"),
-            state.V.ToString("F6"),
-            state.W.ToString("F6"),
-            state.P.ToString("F6"),
-            state.Q.ToString("F6"),
-            state.R.ToString("F6"),
-            state.Roll.ToString("F6"),
-            state.Pitch.ToString("F6"),
-            state.Yaw.ToString("F6"),
-            state.X.ToString("F6"),
-            state.Y.ToString("F6"),
-            state.Z.ToString("F6")
-        });
     }
 }
