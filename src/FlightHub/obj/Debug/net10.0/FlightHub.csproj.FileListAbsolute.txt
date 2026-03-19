@@ -1,0 +1,15 @@
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\bin\Debug\net10.0\FlightHub.exe
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\bin\Debug\net10.0\FlightHub.deps.json
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\bin\Debug\net10.0\FlightHub.runtimeconfig.json
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\bin\Debug\net10.0\FlightHub.dll
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\bin\Debug\net10.0\FlightHub.pdb
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\obj\Debug\net10.0\FlightHub.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\obj\Debug\net10.0\FlightHub.AssemblyInfoInputs.cache
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\obj\Debug\net10.0\FlightHub.AssemblyInfo.cs
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\obj\Debug\net10.0\FlightHub.csproj.CoreCompileInputs.cache
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\obj\Debug\net10.0\FlightHub.sourcelink.json
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\obj\Debug\net10.0\FlightHub.dll
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\obj\Debug\net10.0\refint\FlightHub.dll
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\obj\Debug\net10.0\FlightHub.pdb
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\obj\Debug\net10.0\FlightHub.genruntimeconfig.cache
+C:\Users\dunnm\source\repos\FlightHub\src\FlightHub\obj\Debug\net10.0\ref\FlightHub.dll
