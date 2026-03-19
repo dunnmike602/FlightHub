@@ -7,11 +7,15 @@ public class SimulationTests
     public void Step_IntegratesPosition_WhenBodyVelocityForward()
     {
         var engine = new SimulationEngine();
+        engine.ApplyGravity = true;
         var s = new AircraftState{ U = 10.0, V = 0, W = 0, Roll=0, Pitch=0, Yaw=0 };
         engine.Step(s, 1.0);
         Assert.Equal(10.0, s.X, 6);
         Assert.Equal(0.0, s.Y, 6);
-        Assert.Equal(0.0, s.Z, 6);
+        // With gravity applied and zero attitude, the inertial Z velocity
+        // (down) after integrating gravity for 1s should be -g (approx -9.80665),
+        // so position Z will move by approximately -9.80665 over 1s.
+        Assert.Equal(-9.80665, s.Z, 5);
     }
 
     [Fact]

@@ -4,6 +4,8 @@ using System.Text;
 using FlightHub;
 
 var engine = new SimulationEngine();
+// Enable gravity for the sample run so the integrator includes gravity effects
+engine.ApplyGravity = true;
 var state = new AircraftState
 {
     U = 50.0,
