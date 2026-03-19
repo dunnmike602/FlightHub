@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FlightHub.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+43c1f31a0f77b67f93b8fb1db943de32c935527d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8e33a4d8752dcdeb9ef3108e512bfab704330f2e")]
 [assembly: System.Reflection.AssemblyProductAttribute("FlightHub.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FlightHub.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
