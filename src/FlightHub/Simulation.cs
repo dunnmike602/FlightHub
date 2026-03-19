@@ -1,5 +1,6 @@
-namespace FlightHub;
-
+// Types moved into the default (global) namespace by removing the
+// file-scoped namespace declaration. This makes these types available
+// without a namespace qualifier.
 public interface ISimulationEngine
 {
     string FormatState(double time, AircraftState state);

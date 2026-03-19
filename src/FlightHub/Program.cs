@@ -1,7 +1,7 @@
 using System.Text;
 
 // Top-level program: run a short deterministic 6DOF Euler integration and print CSV
-using FlightHub;
+// Types were moved to the default/global namespace; no namespace import required.
 
 var engine = new SimulationEngine();
 // Enable gravity for the sample run so the integrator includes gravity effects
